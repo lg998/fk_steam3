@@ -1,12 +1,9 @@
-from flask import Flask
+from flask import Flask,request
+import threadpool
+from settings import *
 
 app = Flask(__name__)
-
-
-@app.route('/')
-def hello_world():
-    return 'Hello World!'
-
+threadPool = threadpool.ThreadPool(20)
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
