@@ -3,9 +3,48 @@ import pickle
 import os
 import requests
 import logging
-from enum import Enum
+from functools import wraps
 
-LOGIN_STATE = Enum('LOGIN_STATE', ('INIT', 'NEED_TWOFACTOR_CODE', 'SUCCESS', 'FAIL'))
+getrsa_url = "https://steamcommunity.com/login/getrsakey/"
+login_url = "https://steamcommunity.com/login/dologin/"
+captcha_url = "https://steamcommunity.com/public/captcha.php?gid="
+market_url = "https://steamcommunity.com/market/"
+float_url = "https://api.csgofloat.com:1738/?url="
+buy_url = 'https://steamcommunity.com/market/buylisting/'
+
+null=''
+true=True
+false=False
+
+def retry_if_fail(retry_times):
+    def decorate(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for i in range(1, retry_times):
+                try:
+                    return func(*args, **kwargs)
+                except:
+                    logging.debug("Retrying %s %d times" % (func, i+1))
+                    if i+1 == retry_times:
+                        raise
+                    pass
+        return wrapper
+    return decorate
+
+
+def logged(level, name=None, message=None):
+    def decorate(func):
+        logname = name if name else func.__module__
+        log = logging.getLogger(logname)
+        logmsg = message if message else func.__name__
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            log.log(level, logmsg)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorate
+
 
 def response(code, msg):
     content = {

@@ -3,13 +3,13 @@ import json
 import rsa
 import base64
 import time
+from enum import Enum
 from views.common import *
+from settings import *
 
-getrsa_url = "https://steamcommunity.com/login/getrsakey/"
-login_url = "https://steamcommunity.com/login/dologin/"
-captcha_url = "https://steamcommunity.com/public/captcha.php?gid="
-market_url = "https://steamcommunity.com/market/"
 
+
+LOGIN_STATE = Enum('LOGIN_STATE', ('INIT', 'NEED_TWOFACTOR_CODE', 'SUCCESS', 'FAIL'))
 
 class User:
     login_state = LOGIN_STATE.INIT
@@ -24,7 +24,11 @@ class User:
         self.username = username
         self.password = password
         self.cookie_file_name = self.username+"_cookies"
+        request_retry = requests.adapatrs.HTTPAdapaters(max_retries = REQUEST_RETRY_TIMES)
+        self.session.mount('https://', request_retry)
+        self.session.mount('http://', request_retry)
         self.login_to_steam()
+
 
 
     def login_to_steam(self):
