@@ -3,7 +3,7 @@ import pickle
 import os
 import requests
 import logging
-from functools import wraps
+from functools import wraps, partial
 
 getrsa_url = "https://steamcommunity.com/login/getrsakey/"
 login_url = "https://steamcommunity.com/login/dologin/"
@@ -32,21 +32,23 @@ def retry_if_fail(retry_times):
     return decorate
 
 
-def logged(level, name=None, message=None):
-    def decorate(func):
-        logname = name if name else func.__module__
-        log = logging.getLogger(logname)
-        logmsg = message if message else func.__name__
+def logged(func=None, *, level=logging.DEBUG, name=None, message=None):
+    if func is None:
+        return partial(logged, level=level, name=name, message=message)
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            log.log(level, logmsg)
-            return func(*args, **kwargs)
-        return wrapper
-    return decorate
+    logname = name if name else func.__module__
+    log = logging.getLogger(logname)
+    logmsg = message if message else func.__name__
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        log.log(level, logmsg)
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
-def response(code, msg):
+def jsonres(code, msg):
     content = {
         'code': code,
         'msg': msg
@@ -73,13 +75,13 @@ def load_cookies(session, filename):
             return False
 
 def logging_config():
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(filename)s[line:%(lineno)d] %(threadName)s %(levelname)s %(message)s',
                         datefmt='%a, %d %b %Y %H:%M:%S',
                         filename='autoBuySkin.log',
                         filemode='w')
     console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
+    console.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
     console.setFormatter(formatter)
     logging.getLogger('').addHandler(console)

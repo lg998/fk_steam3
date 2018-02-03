@@ -6,6 +6,8 @@ import time
 from enum import Enum
 from views.common import *
 from settings import *
+from requests.adapters import HTTPAdapter
+from views.db import *
 
 
 
@@ -24,7 +26,7 @@ class User:
         self.username = username
         self.password = password
         self.cookie_file_name = self.username+"_cookies"
-        request_retry = requests.adapatrs.HTTPAdapaters(max_retries = REQUEST_RETRY_TIMES)
+        request_retry = HTTPAdapter(max_retries = REQUEST_RETRY_TIMES)
         self.session.mount('https://', request_retry)
         self.session.mount('http://', request_retry)
         self.login_to_steam()
@@ -34,6 +36,7 @@ class User:
     def login_to_steam(self):
         if load_cookies(self.session, self.cookie_file_name):
             self.login_state = LOGIN_STATE.SUCCESS
+            user_login(self.username)
             print ("Use cookie to login")
         else:
             print ("Use username and password to login")
@@ -47,8 +50,11 @@ class User:
     def continue_login(self, twofactorcode):
         print("sending login post")
         if not self.send_login_post(self.encrypted_password, twofactorcode, self.timestamp):
-            return
+            return False
+        #TODO 用户登陆状态这里别这样写
+        user_login(self.username)
         save_cookies(self.session, self.cookie_file_name)
+        return True
 
     def get_rsa_key(self):
         rsa_res = json.loads(self.session.post(getrsa_url, {'username': self.username}).content)
