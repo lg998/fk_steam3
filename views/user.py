@@ -35,9 +35,9 @@ class User:
 
     def login_to_steam(self):
         if load_cookies(self.session, self.cookie_file_name):
+            print("Use cookie to login")
             self.login_state = LOGIN_STATE.SUCCESS
-            user_login(self.username)
-            print ("Use cookie to login")
+            # user_login(self.username)
         else:
             print ("Use username and password to login")
             print ("getting rsa key")
@@ -51,8 +51,7 @@ class User:
         print("sending login post")
         if not self.send_login_post(self.encrypted_password, twofactorcode, self.timestamp):
             return False
-        #TODO 用户登陆状态这里别这样写
-        user_login(self.username)
+        # user_login(self.username)
         save_cookies(self.session, self.cookie_file_name)
         return True
 

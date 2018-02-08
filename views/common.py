@@ -3,6 +3,8 @@ import pickle
 import os
 import requests
 import logging
+import traceback
+import time
 from functools import wraps, partial
 
 getrsa_url = "https://steamcommunity.com/login/getrsakey/"
@@ -24,9 +26,11 @@ def retry_if_fail(retry_times):
                 try:
                     return func(*args, **kwargs)
                 except:
+                    traceback.print_exc()
                     logging.debug("Retrying %s %d times" % (func, i+1))
                     if i+1 == retry_times:
                         raise
+                    time.sleep(20)
                     pass
         return wrapper
     return decorate
@@ -63,6 +67,7 @@ def save_cookies(session, filename):
 
 def load_cookies(session, filename):
     if not os.path.exists(filename):
+        logging.debug('%s is not exists' % filename)
         return False
     with open(filename, 'rb') as f:
         cookies = pickle.load(f)

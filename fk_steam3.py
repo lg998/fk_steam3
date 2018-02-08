@@ -5,7 +5,7 @@ from views.userlist import *
 from settings import *
 
 
-threadPool = threadpool.ThreadPool(20)
+# threadPool = threadpool.ThreadPool(20)
 userlist = Userlist()
 
 if __name__ == '__main__':

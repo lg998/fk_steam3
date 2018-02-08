@@ -2,6 +2,7 @@ from views.user import *
 from views.common import *
 from pymongo import *
 import requests
+import os
 
 @retry_if_fail(3)
 def play():
@@ -11,11 +12,7 @@ class a:
     m = 1
 
 if __name__ == '__main__':
-    c = a
-    b = []
-    b.append(a)
-    a.m = 2
-    print (b[0].m)
+    print (os.path.exists('lg886_cookies'))
 
     # client = MongoClient()
     # db = client.fk_steam

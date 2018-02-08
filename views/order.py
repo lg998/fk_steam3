@@ -1,12 +1,24 @@
 import threading
 import requests
 import logging
+import time
 from settings import *
 from enum import Enum
 from views.common import *
+import traceback
 
 
 ORDER_STATE = Enum('ORDER_STATE',('RUNNING', 'PAUSED', 'COMPLETED','EXIT_UNEXPECTEDLY'))
+
+# #TODO 这个东西不能序列化
+# class ORDER_STATE(Enum):
+#     RUNNING = 0
+#     PAUSED = 1
+#     COMPLETED = 2
+#     EXIT_UNEXPECTEDLY = 3
+
+
+
 
 class OrderInfo:
     # order_name = ""
@@ -22,41 +34,82 @@ class OrderInfo:
     # order_thread = Orderthread
 
     def __init__(self, weapon_name, order_name = "", min_float = -0.1, max_float = 1.1, pattern_index = -1, max_price = 99999999, scan_count = SCAN_SKINLIST_COUNT, need_count = -1):
-        self.min_float = min_float
-        self.max_float = max_float
-        self.pattern_index = pattern_index
-        self.need_count = need_count
-        self.max_float = max_price
-        self.scan_count = scan_count
-        self.order_state = ORDER_STATE.PAUSE
-        if order_name == "":
+        self.weapon_name = weapon_name
+        self.min_float = float(min_float)
+        self.max_float = float(max_float)
+        self.pattern_index = int(pattern_index) #TODO 测试一下?
+        self.need_count = int(need_count)
+        self.max_price = float(max_price)
+        self.scan_count = int(scan_count)
+        self.order_state = ORDER_STATE.PAUSED
+        self.now_count = 0
+        if order_name == '':
             self.order_name = weapon_name
-        self.skin_url = "http://steamcommunity.com/market/listings/730/%s/render/?query=&start=0&count=%d&country=CN&language=schinese&currency=23" %(weapon_name,scan_count) #TODO 不同国家不同URL
+        self.skin_url = "http://steamcommunity.com/market/listings/730/%s/render/?query=&start=0&count=%s&country=CN&language=schinese&currency=23" %(weapon_name,scan_count) #TODO 不同国家不同URL
+        logging.debug("create order: %s" % self.get_order_info())
+
+    def get_order_info(self):
+        return {
+            'weapon_name' : self.weapon_name,
+            'order_name': self.order_name,
+            'min_float': self.min_float,
+            'max_float': self.max_float,
+            'pattern_index': self.pattern_index,
+            'max_price': self.max_price,
+            'scan_count': self.scan_count,
+            'need_count': self.need_count,
+            'now_count' : self.now_count,
+            'order_state' : self.order_state.value
+        }
 
 class OrderThread(threading.Thread):
     session = requests.Session()
     order_info = OrderInfo
 
     def __init__(self, session, order_info):
-        threading.Thread.__init__(self)
         self.session = session
         self.order_info = order_info
+        threading.Thread.__init__(self)
         self.iterations = 0
         self.daemon = True
         self.paused = True
+        self.stopped = False
         self.state = threading.Condition()
         self.setName(order_info.order_name)
 
     def run(self):
         self.resume()
+        self.order_info.order_state = ORDER_STATE.RUNNING
         while self.order_info.now_count < self.order_info.need_count:
             try:
                 self.get_skin_info_and_buy()
+                if self.stopped == True:
+                    return
+                while self.paused == True:
+                    continue
             except:
+                traceback.print_exc()
                 self.order_info.order_state = ORDER_STATE.EXIT_UNEXPECTEDLY
-                #TODO 暂停线程
+            time.sleep(20)
         self.order_info.order_state = ORDER_STATE.COMPLETED
         print ("Order %s is completed" % self.order_info.order_name)
+
+    def resume(self):
+        logging.debug("thread resume")
+        with self.state:
+            self.paused = False
+            self.state.notify()
+
+
+    def pause(self):
+        logging.debug("thread pause")
+        with self.state:
+            self.paused = True
+
+
+    def stop(self):
+        logging.debug("thread stop")
+        self.stopped = True
 
     #TODO 写的像字典那样整齐点?
     @retry_if_fail(REQUEST_RETRY_TIMES)
@@ -66,30 +119,35 @@ class OrderThread(threading.Thread):
         list_info = eval(html_get.text)
         logging.debug("generate skin information")
         for each in list_info['listinginfo']:
+            if self.stopped == True:
+                return
+            while self.paused == True:
+                continue
+            logging.debug(list_info['listinginfo'][each])
             item_info = list_info['listinginfo'][each]
-            tempStr = list_info['asset']['market_actions'][0]['link']
-            tempStr = tempStr.replace('%listingid%', list_info['listingid'])
-            tempStr = tempStr.replace('%assetid%', list_info['asset']['id'])
+            tempStr = item_info['asset']['market_actions'][0]['link']
+            tempStr = tempStr.replace('%listingid%', item_info['listingid'])
+            tempStr = tempStr.replace('%assetid%', item_info['asset']['id'])
             inspect_url = tempStr.replace('\/', '/')
             get_float_url = float_url + inspect_url
             skin_detail_info = self.get_skin_detail_info(get_float_url)
             skin_detail_info['iteminfo']['price'] = (item_info['converted_price'] + item_info['converted_fee']) / 100
 
             skin_info = {
-                'm_nSubtotal' : list_info['converted_price_per_unit'],
-                'm_nFeeAmount' : list_info['converted_fee_per_unit'],
-                'm_nTotal' : list_info['converted_price_per_unit'] + list_info['converted_fee_per_unit'],
+                'm_nSubtotal' : item_info['converted_price_per_unit'],
+                'm_nFeeAmount' : item_info['converted_fee_per_unit'],
+                'm_nTotal' : item_info['converted_price_per_unit'] + item_info['converted_fee_per_unit'],
                 'inspect_url' : inspect_url,
                 'list_id' : each,
                 'skin_detail_info' : skin_detail_info
             }
-            logging.debug("Testing if this skin is available")
+            logging.debug("Testing if this skin is available: %s" % skin_detail_info)
             if self.skin_available(skin_detail_info):
                 logging.debug("this skin is available")
                 if self.buy_skin(skin_info):
                     self.order_info.now_count += 1
-                else:
-                    logging.debug("this skin is not available")
+            else:
+                logging.debug("this skin is not available")
 
 
 
@@ -105,8 +163,9 @@ class OrderThread(threading.Thread):
         float = skin_detail_info['iteminfo']['floatvalue']
         pattern = skin_detail_info['iteminfo']['paintseed']
         price = skin_detail_info['iteminfo']['price']
-        logging.debug("orderName:%s  float:%s  pattern:%s  price:%d" % (order_info.name, float, pattern, price))
-        if float >= order_info.minFloat and float <= order_info.maxFloat and price <= order_info.maxPrice and (order_info.patternIndex == -1 or order_info.patternIndex == pattern):
+        logging.debug("this_item: orderName:%s  float:%s  pattern:%s  price:%s" % (order_info.order_name, float, pattern, price))
+        logging.debug("order info: min_float: %s, max_float:%s, max_price:%s, pattern_index:%s" % (order_info.min_float,order_info.max_float,order_info.max_price,order_info.pattern_index))
+        if float >= order_info.min_float and float <= order_info.max_float and price <= order_info.max_price and (order_info.pattern_index == -1 or order_info.pattern_index == pattern):
             return True
         else:
             return False
@@ -126,9 +185,9 @@ class OrderThread(threading.Thread):
         buy_url = 'https://steamcommunity.com/market/buylisting/'+skin_info['list_id']
         buy_res = self.session.post(buy_url, buy_post_data, headers=headers)
         if buy_res.status_code == 200:
-            logging.debug("You buy the skin successfully")
+            logging.info("You buy the skin successfully")
             return True
         else:
-            logging.debug("Couldn't buy this skin, state_code: %s, msg:%s" % (buy_res.status_code, buy_res.text))
+            logging.info("Couldn't buy this skin, state_code: %s, msg:%s" % (buy_res.status_code, buy_res.text))
             return False
 
