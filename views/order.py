@@ -33,7 +33,7 @@ class OrderInfo:
     # order_state = ORDER_STATE.PAUSED
     # order_thread = Orderthread
 
-    def __init__(self, weapon_name, order_name = "", min_float = -0.1, max_float = 1.1, pattern_index = -1, max_price = 99999999, scan_count = SCAN_SKINLIST_COUNT, need_count = -1):
+    def __init__(self, weapon_name, order_name = "", min_float = -0.1, max_float = 1.1, pattern_index = -1, max_price = 99999999, scan_count = SCAN_SKINLIST_COUNT, now_count = 0, need_count = -1):
         self.weapon_name = weapon_name
         self.min_float = float(min_float)
         self.max_float = float(max_float)
@@ -42,7 +42,7 @@ class OrderInfo:
         self.max_price = float(max_price)
         self.scan_count = int(scan_count)
         self.order_state = ORDER_STATE.PAUSED
-        self.now_count = 0
+        self.now_count = now_count
         if order_name == '':
             self.order_name = weapon_name
         self.skin_url = "http://steamcommunity.com/market/listings/730/%s/render/?query=&start=0&count=%s&country=CN&language=schinese&currency=23" %(weapon_name,scan_count) #TODO 不同国家不同URL
@@ -66,8 +66,9 @@ class OrderThread(threading.Thread):
     session = requests.Session()
     order_info = OrderInfo
 
-    def __init__(self, session, order_info):
+    def __init__(self, session, username, order_info):
         self.session = session
+        self.username = username
         self.order_info = order_info
         threading.Thread.__init__(self)
         self.iterations = 0
@@ -131,6 +132,7 @@ class OrderThread(threading.Thread):
             inspect_url = tempStr.replace('\/', '/')
             get_float_url = float_url + inspect_url
             skin_detail_info = self.get_skin_detail_info(get_float_url)
+            #TODO 这里老是出错
             skin_detail_info['iteminfo']['price'] = (item_info['converted_price'] + item_info['converted_fee']) / 100
 
             skin_info = {
@@ -146,6 +148,8 @@ class OrderThread(threading.Thread):
                 logging.debug("this skin is available")
                 if self.buy_skin(skin_info):
                     self.order_info.now_count += 1
+                    if self.order_info.now_count >= self.order_info.need_count:
+                        return
             else:
                 logging.debug("this skin is not available")
 

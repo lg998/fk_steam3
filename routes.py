@@ -5,8 +5,10 @@ from views.common import *
 from views.user import *
 from views.order import *
 
+logging_config()
 app = Flask(__name__)
 app.secret_key = 'fp=s;io213`/[asq2121.'
+userlist = Userlist()
 
 def login_required(func):
     @wraps(func)
@@ -83,13 +85,15 @@ def create_order():
     order_info['max_price'] = request.form.get("max_price")
     order_info['scan_count'] = request.form.get("scan_count")
     order_info['need_count'] = request.form.get("need_count")
+    order_info['now_count'] = 0
     for each in list(order_info):
         if order_info[each] == '' or order_info[each] == None:
             order_info.pop(each)
     if order_info['weapon_name'] == '' or order_info['need_count'] == '':
         return jsonres(1, 'You must input weapon name and need count')
-    order_thread = OrderThread(user.session, OrderInfo(**order_info))
+    order_thread = OrderThread(user.session, username, OrderInfo(**order_info))
     user.orders.append(order_thread)
+    insert_order_info(username, order_info)
     order_thread.start()
     return jsonres(0, 'Order is created successfully and running')
 
@@ -194,7 +198,7 @@ def resume_order():
     if order_thread.order_info.order_state == ORDER_STATE.RUNNING or order_thread.order_info.order_state == ORDER_STATE.COMPLETED:
         return jsonres(1, 'Order is running already or completed')
     order_thread.order_info.order_state = ORDER_STATE.RUNNING
-    new_order_thread = OrderThread(user.session, order_thread.order_info)
+    new_order_thread = OrderThread(user.session, username, order_thread.order_info)
     user.orders[order_id] = new_order_thread
     new_order_thread.start()
     return jsonres(0, 'Order is resume')

@@ -22,7 +22,8 @@ class User:
     cookie_file_name = ""
     session = requests.Session()
     orders = []
-    def __init__(self, username, password):
+    #TODO 对于有cookie保存的用户是没有密码验证的，不安全
+    def __init__(self, username, password = 'not exist'):
         self.username = username
         self.password = password
         self.cookie_file_name = self.username+"_cookies"
@@ -35,14 +36,14 @@ class User:
 
     def login_to_steam(self):
         if load_cookies(self.session, self.cookie_file_name):
-            print("Use cookie to login")
+            logging.debug("Use cookie to login")
             self.login_state = LOGIN_STATE.SUCCESS
             # user_login(self.username)
         else:
-            print ("Use username and password to login")
-            print ("getting rsa key")
+            logging.debug ("Use username and password to login")
+            logging.debug ("getting rsa key")
             key_mod, key_exp, self.timestamp = self.get_rsa_key()
-            print ("encrypting password")
+            logging.debug ("encrypting password")
             self.encrypted_password = self.encrypt_password(key_mod, key_exp, self.password)
             self.login_state = LOGIN_STATE.NEED_TWOFACTOR_CODE
 
