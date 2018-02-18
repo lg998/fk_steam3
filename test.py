@@ -1,6 +1,7 @@
 from views.user import *
 from views.common import *
 from pymongo import *
+from bson.objectid import ObjectId
 import requests
 import os
 
@@ -12,8 +13,16 @@ class a:
     m = 1
 
 if __name__ == '__main__':
-    print (os.path.exists('lg886_cookies'))
+    # print (os.path.exists('lg886_cookies'))
 
+    client = MongoClient()
+    db = client.fk_steam
+    # b = collection.insert({'b':'b'})
+    # print(b)
+    # a = list(collection.find({'_id': ObjectId('5a87f192111bd91950e02d4f')}))
+    # print (a)
+    c = db.orders.find({'_id': ObjectId('5a7d99e8111bd91a087c9804')}).count()
+    print (c)
     # client = MongoClient()
     # db = client.fk_steam
     # collection = db.allow_users

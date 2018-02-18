@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>错误</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-3.3.5-dist/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='now_ui_kit/assets/css/now-ui-kit.css')  }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='font-awesome-4.7.0/css/font-awesome.min.css') }}">
+</head>
+<body style="height:100%; background: url('{{ url_for('static', filename='resources/img/bk.jpg') }}') no-repeat fixed;background-size:cover; ">
+    <div class="container" style="width: 40rem; text-align: center">
+         <div class="panel panel-default" style="margin-top: 45%; ">
+            <div class="panel-body">
+            <i class="fa fa-times-circle-o" style="font-size: 25rem"></i>
+            <h3>{{ msg }}</h3>
+            <a class="btn btn-danger" style="width: 25rem" href="{{ url_for('index') }}">返回主页</a>
+            </div>
+         </div>
+    </div>
+
+
+
+</body>
+</html>

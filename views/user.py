@@ -21,7 +21,7 @@ class User:
     timestamp = ""
     cookie_file_name = ""
     session = requests.Session()
-    orders = []
+    orders = {}
     #TODO 对于有cookie保存的用户是没有密码验证的，不安全
     def __init__(self, username, password = 'not exist'):
         self.username = username

@@ -14,8 +14,13 @@ class  Userlist:
             self.add_user(user)
             order_list = get_order_list(username)
             for order in order_list:
-                order_thread = OrderThread(user.session, username, OrderInfo(**order['order_info']))
-                user.orders.append(order_thread)
+                order_info = order['order_info']
+                order_info['id'] = str(order['_id'])
+                print(order_info)
+                order_thread = OrderThread(user.session, username, OrderInfo(**order_info))
+                if order_thread.order_info.now_count >= order_thread.order_info.need_count:
+                    order_thread.order_info.order_state = ORDER_STATE.COMPLETED
+                user.orders[order_info['id']] = order_thread
 
     def add_user(self, user):
         self.users.append(user)
@@ -24,6 +29,8 @@ class  Userlist:
         for user in self.users:
             if user.username == username:
                 return user
+        return False
+
     def get_all_users(self):
         user_names = []
         for user in self.users:

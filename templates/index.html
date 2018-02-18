@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>主页</title>
+    <link href="{{ url_for('static', filename='now_ui_kit/assets/css/bootstrap.min.css') }}" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='now_ui_kit/assets/css/now-ui-kit.css') }}" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='font-awesome-4.7.0/css/font-awesome.min.css') }}" rel="stylesheet" />
+
+
+
+</head>
+<body class="sidebar-collapse">
+
+    <nav class="navbar navbar-expand-lg bg-white">
+        <div class="container">
+            <div class="navbar-translate">
+                <a class="navbar-brand" href="{{ url_for('index') }}">
+                   fk_steam
+               </a>
+                <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navigation" aria-controls="navigation-index" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-bar bar1"></span>
+                <span class="navbar-toggler-bar bar2"></span>
+                <span class="navbar-toggler-bar bar3"></span>
+            </button>
+
+
+            </div>
+
+            <div class="collapse navbar-collapse justify-content-end" id="navigation">
+                <ul class="navbar-nav">
+                     <li class="nav-item">
+                        <a class="nav-link" href="" >{{ username }}</a>
+                    </li>
+                    <li class="nav-item active">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            订单
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="modal" data-target="#logout_model">注销</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    {% for error in get_flashed_messages(category_filter=["error"]) %}
+    <div class="alert alert-danger">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">
+                <i class="now-ui-icons ui-1_simple-remove"></i>
+            </span>
+        </button>
+        {{ error }}
+    </div>
+    {% endfor %}
+    {% for message in get_flashed_messages(category_filter=["message"]) %}
+    <div class="alert alert-info">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">
+                <i class="now-ui-icons ui-1_simple-remove"></i>
+            </span>
+        </button>
+        {{ message }}
+    </div>
+    {% endfor %}
+    <div>
+        {%  for order in orders %}
+         <div class="card" style="width: 40rem; margin-left: 3rem">
+            <div class="card-header">
+                {{ order.order_name }}&nbsp;&nbsp;
+                {% if order.order_state == 1 %}
+                <span class="badge badge-success">运行中</span>
+                {% elif order.order_state == 2 %}
+                <span class="badge badge-warning">已暂停</span>
+                {% elif order.order_state == 3 %}
+                <span class="badge badge-info">已完成</span>
+                {% elif order.order_state == 4 %}
+                <span class="badge badge-danger">异常退出</span>
+                {% endif %}
+                <label></label>
+                <a data-toggle="modal" data-target="#delete_order_model" style="font-size: 20px; float: right; color: grey; cursor: pointer" onmouseover="this.style.color='black'" onmouseleave="this.style.color='grey'" onclick="set_delete_id('{{ order.order_id }}')"><i class="fa fa-close" ></i></a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <p class="col-sm-6">皮肤名: {{ order.weapon_name }}</p>
+                    <p class="col-sm-6">订单名: {{ order.order_name }}</p>
+                    <p class="col-sm-6">最小磨损: {{ order.min_float }}</p>
+                    <p class="col-sm-6">最大磨损: {{ order.max_float }}</p>
+                    <p class="col-sm-6">pattern: {{ order.pattern_index }}</p>
+                    <p class="col-sm-6">最高价: {{ order.max_price }}</p>
+                    <p class="col-sm-6">扫描数: {{ order.scan_count }}</p>
+                    <p class="col-sm-6">已购数/求购数: {{ order.now_count }}/{{ order.need_count }}</p>
+                </div>
+
+                {% if order.order_state == 1 %}
+                <form action="{{ url_for('pause_order') }}" method="POST">
+                    <input value="{{ order.order_id }}" type="hidden" name="order_id">
+                    <button type="submit" class="btn btn-danger" style="float: right; margin-left: 0.5rem">暂停订单</button>
+                </form>
+                {% elif order.order_state == 2 or order.order_state == 4 %}
+
+                <form action="{{ url_for('resume_order') }}" method="POST">
+                    <input value="{{ order.order_id }}" type="hidden" name="order_id">
+                    <button type="submit" class="btn btn-info" style="float: right; margin-left: 0.5rem">开始订单</button>
+                </form>
+                {% endif %}
+                {% if order.order_state != 3 %}
+                <input value="{{ order.order_id }}" type="hidden" name="order_id">
+                <a data-toggle="modal" data-target="#edit_order_model" class="btn btn-info btn-simple" style="float: right; margin-left: 0.5rem" onclick="set_edit_info({{ order | safe }})">
+                    编辑订单
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {%  endfor %}
+    </div>
+
+    <div style="position: fixed; bottom: 50px; right: 50px"><a data-toggle="modal" data-target="#create_order_model" onmouseover="this.style.color='#800000'" onmouseleave="this.style.color='red'" style="cursor: pointer; font-size: 5rem; color: red; text-shadow: 3px 3px 10px #888888"><i class="fa fa-plus-circle" ></i></a></div>
+</body>
+
+<div class="modal fade" id="logout_model" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <p></p>
+            </div>
+            <div class="modal-body">
+                <h4>确定要注销?</h4>
+            </div>
+            <div class="modal-footer">
+                <form action="{{ url_for('logout') }}" method="POST">
+
+                    <button type="submit" class="btn btn-danger btn-simple">确定</button>
+                </form>
+
+                <button type="button" class="btn btn-default btn-simple" data-dismiss="modal">取消</button>
+              </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="delete_order_model" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <p></p>
+            </div>
+            <div class="modal-body">
+                <h4>确定要删除订单?</h4>
+            </div>
+            <div class="modal-footer">
+                <form action="{{ url_for('delete_order') }}" method="POST">
+
+                    <input type="hidden" id="delete_id" name="order_id">
+                    <button type="submit" class="btn btn-danger btn-simple">删除</button>
+                </form>
+
+                <button type="button" class="btn btn-default btn-simple" data-dismiss="modal">取消</button>
+              </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="edit_order_model" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel">创建订单</h4>
+            </div>
+            <div class="modal-body">
+                <span style="color: red">*号为必填</span>
+                <form action="{{ url_for('edit_order') }}" method="POST">
+                    <input type="hidden" id="e_edit_id" name="order_id">
+                    <div class="form-group row">
+                        <label for="e_weapon_name" class="col-sm-2 control-label">皮肤名<span style="color: red">*</span></label>
+                        <div class="col-sm-10">
+                            <input  type="text" class="form-control" id="e_weapon_name" name="weapon_name">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="e_order_name" class="col-sm-2 control-label">订单名</label>
+                        <div class="col-sm-10">
+                            <input  type="text" class="form-control" id="e_order_name" name="order_name" placeholder="默认为皮肤名">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="e_min_float" class="col-sm-3 control-label">最小磨损</label>
+                        <div class="col-sm-3">
+                            <input  type="number" class="form-control" id="e_min_float" name="min_float" step="0.0000000000001" placeholder="-0.1">
+                        </div>
+                        <label for="me_ax_float" class="col-sm-3 control-label">最大磨损</label>
+                        <div class="col-sm-3">
+                            <input  type="number" class="form-control" id="e_max_float" name="max_float" step="0.0000000000001" placeholder="1.1">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="e_pattern_index" class="col-sm-3 control-label">pattern</label>
+                        <div class="col-sm-3">
+                            <input  type="number" class="form-control" id="e_pattern_index" name="pattern_index" placeholder="-1">
+                        </div>
+                        <label for="e_max_price" class="col-sm-3 control-label">最高价</label>
+                        <div class="col-sm-3">
+                            <input  type="number" class="form-control" id="e_max_price" name="max_price" step="0.0000000000001" placeholder="99999999">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="e_scan_count" class="col-sm-3 control-label">扫描数</label>
+                        <div class="col-sm-3">
+                            <input  type="number" class="form-control" id="e_scan_count" name="scan_count" placeholder="15">
+                        </div>
+                        <label for="e_need_count" class="col-sm-3 control-label">求购数<span style="color: red">*</span></label>
+                        <div class="col-sm-3">
+                            <input  type="number" class="form-control" id="e_need_count" name="need_count">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-info btn-simple" style="float: right">修改</button>
+                    <button type="button" class="btn btn-default btn-simple" data-dismiss="modal">取消</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="create_order_model" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title" id="myModalLabel">创建订单</h4>
+            </div>
+            <div class="modal-body">
+                <span style="color: red">*号为必填</span>
+                <form action="{{ url_for('create_order') }}" method="POST">
+                    <div class="form-group row">
+                        <label for="weapon_name" class="col-sm-2 control-label">皮肤名<span style="color: red">*</span></label>
+                        <div class="col-sm-10">
+                            <input  type="text" class="form-control" id="weapon_name" name="weapon_name">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="order_name" class="col-sm-2 control-label">订单名</label>
+                        <div class="col-sm-10">
+                            <input  type="text" class="form-control" id="order_name" name="order_name" placeholder="默认为皮肤名">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="min_float" class="col-sm-3 control-label">最小磨损</label>
+                        <div class="col-sm-3">
+                            <input  type="number" class="form-control" id="min_float" name="min_float" step="0.0000000000001" placeholder="-0.1">
+                        </div>
+                        <label for="max_float" class="col-sm-3 control-label">最大磨损</label>
+                        <div class="col-sm-3">
+                            <input  type="number" class="form-control" id="max_float" name="max_float" step="0.0000000000001" placeholder="1.1">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="pattern_index" class="col-sm-3 control-label">pattern</label>
+                        <div class="col-sm-3">
+                            <input  type="number" class="form-control" id="pattern_index" name="pattern_index" placeholder="-1">
+                        </div>
+                        <label for="max_price" class="col-sm-3 control-label">最高价</label>
+                        <div class="col-sm-3">
+                            <input  type="number" class="form-control" id="max_price" name="max_price" step="0.0000000000001" placeholder="99999999">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="scan_count" class="col-sm-3 control-label">扫描数</label>
+                        <div class="col-sm-3">
+                            <input  type="number" class="form-control" id="scan_count" name="scan_count" placeholder="15">
+                        </div>
+                        <label for="need_count" class="col-sm-3 control-label">求购数<span style="color: red">*</span></label>
+                        <div class="col-sm-3">
+                            <input  type="number" class="form-control" id="need_count" name="need_count">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-info btn-simple" style="float: right">创建</button>
+                    <button type="button" class="btn btn-default btn-simple" data-dismiss="modal">取消</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='now_ui_kit/assets/js/core/jquery.3.2.1.min.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='now_ui_kit/assets/js/core/popper.min.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='now_ui_kit/assets/js/core/bootstrap.min.js') }}" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='now_ui_kit/assets/js/now-ui-kit.js') }}" type="text/javascript"></script>
+<script>
+    function set_delete_id(order_id){
+        $('#delete_id').val(order_id);
+    }
+    function set_edit_info(order){
+        $('#e_edit_id').val(order.order_id);
+        $('#e_weapon_name').val(order.weapon_name);
+        $('#e_order_name').val(order.order_name);
+        $('#e_min_float').val(order.min_float);
+        $('#e_max_float').val(order.max_float);
+        $('#e_max_price').val(order.max_price);
+        $('#e_pattern_index').val(order.pattern_index);
+        $('#e_scan_count').val(order.scan_count);
+        $('#e_need_count').val(order.need_count);
+    }
+    $(document).ready(function() {
+    // alert auto close
+    window.setTimeout(function() {
+        $(".alert").fadeTo(300, 0).slideUp(300, function(){
+            $(this).alert('close');
+        });
+    }, 2000);
+
+});
+</script>
+</html>

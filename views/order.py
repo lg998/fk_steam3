@@ -5,6 +5,7 @@ import time
 from settings import *
 from enum import Enum
 from views.common import *
+from views.db import *
 import traceback
 
 
@@ -33,7 +34,8 @@ class OrderInfo:
     # order_state = ORDER_STATE.PAUSED
     # order_thread = Orderthread
 
-    def __init__(self, weapon_name, order_name = "", min_float = -0.1, max_float = 1.1, pattern_index = -1, max_price = 99999999, scan_count = SCAN_SKINLIST_COUNT, now_count = 0, need_count = -1):
+    def __init__(self, weapon_name, id, order_name = "", min_float = -0.1, max_float = 1.1, pattern_index = -1, max_price = 99999999, scan_count = SCAN_SKINLIST_COUNT, now_count = 0, need_count = -1):
+        self.id = id
         self.weapon_name = weapon_name
         self.min_float = float(min_float)
         self.max_float = float(max_float)
@@ -45,6 +47,8 @@ class OrderInfo:
         self.now_count = now_count
         if order_name == '':
             self.order_name = weapon_name
+        else:
+            self.order_name = order_name
         self.skin_url = "http://steamcommunity.com/market/listings/730/%s/render/?query=&start=0&count=%s&country=CN&language=schinese&currency=23" %(weapon_name,scan_count) #TODO 不同国家不同URL
         logging.debug("create order: %s" % self.get_order_info())
 
@@ -58,9 +62,9 @@ class OrderInfo:
             'max_price': self.max_price,
             'scan_count': self.scan_count,
             'need_count': self.need_count,
-            'now_count' : self.now_count,
-            'order_state' : self.order_state.value
+            'now_count' : self.now_count
         }
+
 
 class OrderThread(threading.Thread):
     session = requests.Session()
@@ -92,8 +96,7 @@ class OrderThread(threading.Thread):
                 traceback.print_exc()
                 self.order_info.order_state = ORDER_STATE.EXIT_UNEXPECTEDLY
             time.sleep(20)
-        self.order_info.order_state = ORDER_STATE.COMPLETED
-        print ("Order %s is completed" % self.order_info.order_name)
+
 
     def resume(self):
         logging.debug("thread resume")
@@ -148,7 +151,10 @@ class OrderThread(threading.Thread):
                 logging.debug("this skin is available")
                 if self.buy_skin(skin_info):
                     self.order_info.now_count += 1
+                    edit_order_info(self.order_info.id, self.order_info.get_order_info())
                     if self.order_info.now_count >= self.order_info.need_count:
+                        self.order_info.order_state = ORDER_STATE.COMPLETED
+                        logging.info("User %s order %s is completed" % (self.username, self.order_info.order_name))
                         return
             else:
                 logging.debug("this skin is not available")

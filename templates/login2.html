@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>登录验证</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-3.3.5-dist/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{  url_for('static', filename='now_ui_kit/assets/css/now-ui-kit.css')  }}">
+</head>
+<body style="height:100%; background: url('{{ url_for('static', filename='resources/img/bk.jpg') }}') no-repeat fixed;background-size:cover; ">
+    <div class="container" style="width: 40rem; text-align: center">
+         <div class="panel panel-default" style="margin-top: 45%; ">
+            <div class="panel-body">
+            <h3>{{ username }} : 输入验证码</h3>
+            <form action="{{ url_for('login2') }}" method="POST" >
+                <input type="text" class="form-control" placeholder="验证码" id="twofactorcode" style="margin-top: 3%" name="twofactorcode">
+                <button class="btn btn-success btn-block" type="submit" style="margin-top: 3%">登录</button>
+            </form>
+            </div>
+         </div>
+    </div>
+
+</body>
+</html>
